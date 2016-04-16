@@ -1,8 +1,10 @@
 from __future__ import division
 import math
-white = (255,255,255)
-black = (0,0,0)
-red = (255,0,0)
+white = (255, 255, 255)
+black = (0, 0, 0)
+red = (255, 0, 0)
+blue = (0, 0, 255)
+green = (0, 255, 0)
 
 XMAX_SCALE = 400
 YMAX_SCALE = 400
@@ -20,13 +22,17 @@ FPS = 60
 
 RESOURCES = '..\\res\\'
 BG_PATH = RESOURCES + 'bg.png'
+SERVER_SS = RESOURCES + 's_r.jpg'
+CLIENT_SS = RESOURCES + 'c_r.jpg'
+SS = RESOURCES + 'sbw.png'
+
 
 
 #mallet
 MALLET_SPEED=0.05
 MALLET_FRICTION=0.001
 MALLET_MASS=20
-
+MALLET_RAD = 10
 
 #disc
 DISC_MAX_SPEED=0.6
@@ -35,7 +41,7 @@ DISC_MASS=10
 DISC_START_ANGLE=75
 DISC_START_POS = [40, 50]
 DISC_START_SPEED = 0.05
-
+DISC_RAD = 5
 
 
 

@@ -12,13 +12,13 @@ class Disc:
     color =[0, 0, 0]
     draw_pos = [0, 0]
 
-    def __init__(self, pos, speed, ang, friction, mass, color):
+    def __init__(self, pos, speed, ang, friction, mass, rad, color):
         self.pos = pos
         self.speed = speed
         self.ang = ang
         self.friction = friction
         self.mass = mass
-        self.rad = 10
+        self.rad = rad
         self.color = color
 
     def move(self, dt):
@@ -67,8 +67,9 @@ class Disc:
             # bottom wall
             if - XMAX_SCALE / 2 + GOAL_WIDTH/2 < self.pos[0] < XMAX_SCALE / 2 - GOAL_WIDTH/2:
                 if self.pos[1] <= -YMAX_SCALE/2 - self.rad:
-                    self.pos = [0, 0]
-                    print("goal BOT")
+                    self.pos = [-XMAX_SCALE/2, 0] #bottom goal
+                    self.speed = 0.3
+                    self.ang = 330
                     return 3
                 else:
                     return 0
@@ -80,8 +81,9 @@ class Disc:
             # top wall
             if - XMAX_SCALE / 2 + GOAL_WIDTH/2 < self.pos[0] < XMAX_SCALE / 2 - GOAL_WIDTH/2:
                 if self.pos[1] >= YMAX_SCALE/2 + self.rad:
-                    self.pos = [0, 0]
-                    print("goal TOP")
+                    self.pos = [-XMAX_SCALE/2, 0]#top goal
+                    self.speed = 0.3
+                    self.ang = 30
                     return 2
                 else:
                     return 0
