@@ -1,5 +1,7 @@
 from __future__ import division
 import math
+import random
+
 white = (255, 255, 255)
 black = (0, 0, 0)
 red = (255, 0, 0)
@@ -7,7 +9,7 @@ blue = (0, 0, 255)
 green = (0, 255, 0)
 
 XMAX_SCALE = 400
-YMAX_SCALE = 400
+YMAX_SCALE = 610
 XMAX = 500
 YMAX = 760
 GOAL_WIDTH = 250
@@ -22,11 +24,12 @@ FPS = 60
 
 RESOURCES = '..\\res\\'
 BG_PATH = RESOURCES + 'bg.png'
-SERVER_SS = RESOURCES + 's_r.jpg'
-CLIENT_SS = RESOURCES + 'c_r.jpg'
-SS = RESOURCES + 'sbw.png'
-
-
+SERVER_SS = RESOURCES + 's.jpg'
+CLIENT_SS = RESOURCES + 'c.jpg'
+SS = RESOURCES + 'ss.png'
+ICON = RESOURCES + 'icon.png'
+CLAP_SOUND = RESOURCES + 'c.wav'
+BOO_SOUND = RESOURCES + 'b.wav'
 
 #mallet
 MALLET_SPEED=0.05
@@ -35,15 +38,12 @@ MALLET_MASS=20
 MALLET_RAD = 10
 
 #disc
-DISC_MAX_SPEED=0.6
-DISC_FRICTION=0.0002
-DISC_MASS=10
-DISC_START_ANGLE=75
-DISC_START_POS = [40, 50]
-DISC_START_SPEED = 0.05
-DISC_RAD = 5
-
-
+DISC_MAX_SPEED = 0.5
+DISC_FRICTION = 0.0002
+DISC_MASS = 10
+DISC_START_ANGLE = 30 + random.randint(0, 1) * 300
+DISC_START_SPEED = 0.15
+DISC_RAD = 7
 
 
 def dist(pos1, pos2):

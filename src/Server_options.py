@@ -13,9 +13,9 @@ class Options(wx.Frame):
         self.panel = wx.Panel(self, wx.ID_ANY)
         self.panel.SetBackgroundColour("black")
         self.panel.SetForegroundColour("white")
-        self.start = wx.Button(self.panel, id=wx.ID_ANY, label="Start", pos=(250, 200))
+        self.start = wx.Button(self.panel, id=wx.ID_ANY, label="Start", pos=(250, 220))
         self.Bind(wx.EVT_BUTTON, self.start_server_fn, self.start)
-        self.webcam = wx.Button(self.panel, id=wx.ID_ANY, label="Test Webcam", pos=(250, 100))
+        self.webcam = wx.Button(self.panel, id=wx.ID_ANY, label="Test Webcam", pos=(250, 180))
         self.Bind(wx.EVT_BUTTON, self.webcam_fn, self.webcam)
         self.ip = wx.StaticText(self.panel, -1, label="IP address:" , pos=(10, 20), name='ip')
 
@@ -37,7 +37,7 @@ class Options(wx.Frame):
 
         self.score_l = wx.StaticText(self.panel, -1, label="Max Score:", pos=(10, 185), name='score')
         self.score = wx.TextCtrl(self.panel, -1, pos=(100,185))
-        self.score.SetLabel('-1')
+        self.score.SetLabel('2')
 
         self.SetTitle('Server')
         self.Centre()
@@ -45,6 +45,19 @@ class Options(wx.Frame):
 
     def start_server_fn(self, event):
         f = open('settings_s.txt', 'w')
+        try:
+            int(self.time.GetValue())
+        except:
+            self.time.SetValue('-1')
+            msgbox = wx.MessageBox('End time should be number', 'Alert', wx.ICON_EXCLAMATION | wx.STAY_ON_TOP)
+            return
+        try:
+            int(self.score.GetValue())
+        except:
+            self.score.SetValue('2')
+            msgbox = wx.MessageBox('End score should be number', 'Alert',
+                                   wx.ICON_EXCLAMATION | wx.STAY_ON_TOP)
+            return
         f.write(self.time.GetValue() + '\n')
         f.write(self.score.GetValue() + '\n')
         f.write(str(self.color_select_s.GetColour()[0]) + '\n')
@@ -59,10 +72,11 @@ class Options(wx.Frame):
         self.Close()
 
     def webcam_fn(self, event):
-        self.start.Disable()
-        web_cam.start()
-        self.start.Enable()
+        #self.start.Disable()
+        web_cam.window()
+        #self.start.Enable()
 
-app = wx.App()
-e = Options(None, title='Size')
-app.MainLoop()
+def start():
+    app = wx.App()
+    e = Options(None, title='Size')
+    app.MainLoop()

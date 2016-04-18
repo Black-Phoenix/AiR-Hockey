@@ -1,3 +1,5 @@
+from pygame.constants import K_SPACE, K_ESCAPE
+
 from mallet import *
 import pygame
 import socket
@@ -10,10 +12,14 @@ import cPickle as pickles
 from Constant import *
 import pickle
 from Chrono import Chrono
+import winsound
+from ConfigParser import SafeConfigParser
+
 bg = pygame.image.load(BG_PATH)
 score = [0, 0]
 score1 = score2 = 0
-
+lower = np.array([10, 150, 0])
+upper = np.array([30, 255, 255])
 clock = pygame.time.Clock()
 
 player2_pos = PLAYER2_START
@@ -26,14 +32,16 @@ MAX_GOAL = -1
 
 
 #load images
-def init():
+def init(screen):
     global player2, player1, disc, score1, score2, clock, player2_pos, player1_pos, score, chrono, font, font_small
     chrono = Chrono(0, 0, 0)
     font = pygame.font.Font("../fonts/scoreboard.ttf", 60)
     font_small = pygame.font.Font("../fonts/scoreboard.ttf", 30)
-    disc.pos = [0, 0]
+    disc.pos = [-XMAX_SCALE/2, 0]
+    disc.speed = DISC_START_SPEED
+    disc.ang = DISC_START_ANGLE
     score = [0, 0]
-    score1 = score2 = 0
+    score1 = score2 == font.render('0', 1, white)
     clock = pygame.time.Clock()
     player1_pos = PLAYER1_START
     player2_pos = PLAYER2_START
@@ -43,9 +51,8 @@ def init():
     score2 = font.render(str(score[1]), 1, white)
     draw(screen=screen)
 
-
 def capture():
-    global player1_pos
+    global player1_pos, lower, upper
     h = w = 0
     cap = cv2.VideoCapture(0)
     while True:
@@ -55,9 +62,8 @@ def capture():
         if h == 0:
             (w, h) = hsv.shape[:2]
         cv2.flip(hsv, 1, hsv)
-        lower_pink = np.array([10, 150, 0])
-        upper_pink = np.array([30, 255, 255])
-        mask = cv2.inRange(hsv, lower_pink, upper_pink)
+
+        mask = cv2.inRange(hsv, lower, upper)
         kernal = np.ones((15, 15), np.float32) / 225
         opening = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernal)
         cnts = cv2.findContours(opening.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
@@ -73,7 +79,7 @@ def draw(screen):
     global score1, score2, font, font_small
     # draw
     screen.fill(black)
-    screen.blit(bg, scale([-XMAX_SCALE/2 - 30, YMAX_SCALE/2 + 14]))
+    screen.blit(bg, scale([-XMAX_SCALE/2 - 32, YMAX_SCALE/2 + 22]))
     screen.blit(score1, scale([-XMAX_SCALE/4 - XMAX_SCALE/16, -YMAX_SCALE/26]))
     screen.blit(score2, scale([XMAX_SCALE/4, YMAX_SCALE/8]))
     time = font_small.render(chrono.__str__(), 1, white)
@@ -103,7 +109,7 @@ def draw(screen):
     pygame.display.update()
 
 
-def start(conn):
+def start(conn, screen):
     #threads are started
     global player2_pos, player1_pos, score, score1, score2, font
     score1 = score2 = font.render(str(score[0]), 1, white)
@@ -120,9 +126,11 @@ def start(conn):
         player2.move(dt, player2_pos)
 
         if (score[0] == MAX_GOAL or score[1] == MAX_GOAL) or (MAX_TIME != -1 and chrono.get_minute() >= MAX_TIME and score[0] != score[1]):
-            winner = end_game()
+            winner = end_game(screen)
             send_pos(conn, winner)
-            break
+            pygame.time.wait(3000)
+            clock.tick(500)
+            return
 
         #score addition
         goal = disc.collision_wall()
@@ -153,19 +161,20 @@ def start(conn):
         threading.Thread(name='draw', target=draw, kwargs=dict(screen=screen)).start()
         threading.Thread(name='send', target=send_pos, kwargs=dict(conn=conn)).start()
 
-def end_game():
+
+def end_game(screen):
     # opposite scores ##top score 1 ##bottom score2
-    if score[0] > score[1]:
+    if score[0] < score[1]:
         winner = 0
         end_label = font.render("PLAYER 1 WINS!", 1, PLAYER1_COLOR)
+        winsound.PlaySound(CLAP_SOUND, winsound.SND_FILENAME)
     else:
         winner = 1
         end_label = font.render("PLAYER 2 WINS!", 1, PLAYER2_COLOR)
+        winsound.PlaySound(BOO_SOUND, winsound.SND_FILENAME)
 
-    screen.blit(end_label,(XMAX*0.5-end_label.get_width()*0.5,YMAX*0.5))
+    screen.blit(end_label, (XMAX*0.5-end_label.get_width()*0.5 + 20, YMAX*0.5))
     pygame.display.update()
-    pygame.time.wait(3000)
-    clock.tick(500)
     return winner
 
 
@@ -183,8 +192,11 @@ def send_pos(conn, winner=-1):
 def recv_pos(conn):
     global player2_pos
     while True:
-        data = conn.recv(1024)
-        player2_pos = [pickle.loads(data)[0], pickle.loads(data)[1]]
+        try:
+            data = conn.recv(1024)
+            player2_pos = [pickle.loads(data)[0], pickle.loads(data)[1]]
+        except:
+            continue
 
 
 def connect(list):
@@ -195,9 +207,25 @@ def connect(list):
     conn.send(pickle.dumps(list))
     return conn
 
+
+def wait():
+    global player1, player2, disc
+    pygame.init()
+    screen = pygame.display.set_mode((XMAX, YMAX))
+    pygame.display.set_caption("Server")
+    pygame.display.set_icon(pygame.image.load(ICON))
+    player1 = Mallet(PLAYER1_START, MALLET_SPEED, 0, MALLET_MASS, MALLET_RAD, 1, PLAYER1_COLOR)
+    player2 = Mallet(PLAYER2_START, MALLET_SPEED, 0, MALLET_MASS, MALLET_RAD, 2, PLAYER2_COLOR)
+    disc = d.Disc([-XMAX_SCALE/2, 0], DISC_START_SPEED, DISC_START_ANGLE, DISC_FRICTION, DISC_MASS, DISC_RAD, PUCK_COLOR)
+    init(screen)
+    screen.blit(font_small.render('Waiting for Client', 1, white), scale((-XMAX_SCALE / 3, YMAX_SCALE / 4)))
+    pygame.display.update()
+    return screen
+
+
 def main():
     #reading full settings
-    global PLAYER1_COLOR, PLAYER2_COLOR, MAX_GOAL, MAX_TIME, PUCK_COLOR, screen,player1, player2,disc
+    global PLAYER1_COLOR, PLAYER2_COLOR, MAX_GOAL, MAX_TIME, PUCK_COLOR, player1, player2, disc, lower, upper
     file = open('settings_s.txt', 'r')
     list = [word.strip() for word in file.readlines()]
     MAX_TIME = int(list[0])
@@ -206,19 +234,43 @@ def main():
     PUCK_COLOR = list[5:8]
     PLAYER1_COLOR = [int(word) for word in PLAYER1_COLOR]
     PUCK_COLOR = [int(word) for word in PUCK_COLOR]
+    screen = wait()
+    try:
+        config = SafeConfigParser()
+        config.read('HSV_Config.ini')
+        l1 = int(config.get('Lower Bound', 'H'))
+        l2 = int(config.get('Lower Bound', 'S'))
+        l3 = int(config.get('Lower Bound', 'V'))
+        u1 = int(config.get('Upper Bound', 'H'))
+        u2 = int(config.get('Upper Bound', 'S'))
+        u3 = int(config.get('Upper Bound', 'V'))
+    except:
+        l1 = l2 = l3 = u1 = u2 = u3 = 50
+    lower = np.array([int(l1), int(l2), int(l3)])
+    upper = np.array([int(u1), int(u2), int(u3)])
+    # establishing a connection
     conn = connect(list)
-    #todo recv client color
-    PLAYER2_COLOR = [int(word) for word in pickle.loads(conn.recv(1024))]
-    pygame.init()
-    screen = pygame.display.set_mode((XMAX, YMAX))
-    player1 = Mallet(PLAYER1_START, MALLET_SPEED, 0, MALLET_MASS, MALLET_RAD, 1, PLAYER1_COLOR)
-    player2 = Mallet(PLAYER2_START, MALLET_SPEED, 0, MALLET_MASS, MALLET_RAD, 2, PLAYER2_COLOR)
-    disc = d.Disc(DISC_START_POS, DISC_START_SPEED, DISC_START_ANGLE, DISC_FRICTION, DISC_MASS, DISC_RAD, PUCK_COLOR)
-
-    #todo possable loop for multiple games
-    while(True):
-        init()
-        start(conn)
+    player2.color = PLAYER2_COLOR = [int(word) for word in pickle.loads(conn.recv(1024))]
+    flag = True
+    while flag:
+        init(screen)
+        start(conn, screen)
+        draw(screen)
+        cont_or_exit = font_small.render("Press Space to continue", 1, white)
+        screen.blit(cont_or_exit, [XMAX/4 - 30, YMAX / 4])
+        pygame.display.update()
+        while (True):
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    flag = False
+                    break
+            keys = pygame.key.get_pressed()
+            if keys[K_SPACE]:
+                flag = True
+                break
+            elif keys[K_ESCAPE]:
+                flag = False
+                break
     pygame.quit()
     quit()
 

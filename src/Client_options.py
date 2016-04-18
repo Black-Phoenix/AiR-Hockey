@@ -3,6 +3,7 @@ import socket
 import Client
 import threading
 import image_detection as web_cam
+import re
 
 class Options(wx.Frame):
     def __init__(self, parent, title):
@@ -31,6 +32,12 @@ class Options(wx.Frame):
         self.Show(True)
 
     def start_server_fn(self, event):
+        m = re.match(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$", self.ip_address.GetValue())
+        if (m == None):
+            msgbox = wx.MessageBox('IP address not vaild',
+                                   'Alert', wx.ICON_EXCLAMATION | wx.STAY_ON_TOP)
+            self.ip_address.SetValue('127.0.0.1')
+            return
         f = open('settings_c.txt', 'w')
         f.write(str(self.color_select_s.GetColour()[0]) + '\n')
         f.write(str(self.color_select_s.GetColour()[1]) + '\n')
@@ -38,12 +45,18 @@ class Options(wx.Frame):
         f.close()
         threading.Thread(name='main_client', target=Client.main, kwargs=dict(ip=self.ip_address.GetValue())).start()
         self.Close()
+        self.Destroy()
 
     def webcam_fn(self, event):
-        self.start.Disable()
-        web_cam.start()
-        self.start.Enable()
+ #       self.start.Disable()
+        web_cam.window()
+#        self.start.Enable()
 
-app = wx.App()
-e = Options(None, title='Size')
-app.MainLoop()
+    def __del__(self):
+        wx.GetApp().ExitMainLoop()
+
+
+def start():
+    app = wx.App()
+    e = Options(None, title='Size')
+    app.MainLoop()
